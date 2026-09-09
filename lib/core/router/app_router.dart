@@ -3,14 +3,37 @@ import 'package:go_router/go_router.dart';
 import '../../core/features/customer/views/qr_menu_screen.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/table?token=e51270c32f492644620a42fdcf11bcc2',
+  // Default to root so non-QR visitors see a landing page
+  initialLocation: '/',
+  
   routes: [
-    // 1. Customer QR Entry Route (PWA)
+    // 1. Primary Entry Point for Table QR Scans
+    GoRoute(
+      path: '/order',
+      builder: (context, state) {
+        // Extract 'qr' or 'token' dynamically from query parameters
+        final token = state.uri.queryParameters['qr'] ?? state.uri.queryParameters['token'];
+
+        if (token == null || token.isEmpty) {
+          return const Scaffold(
+            body: Center(
+              child: Text(
+                'Invalid or Missing QR Code.',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          );
+        }
+
+        return QrMenuScreen(qrToken: token);
+      },
+    ),
+
+    // 2. Backward Compatibility Route
     GoRoute(
       path: '/table',
       builder: (context, state) {
-        // Extract token from URL, e.g., /table?token=abc-123
-        final token = state.uri.queryParameters['token'];
+        final token = state.uri.queryParameters['token'] ?? state.uri.queryParameters['qr'];
 
         if (token == null || token.isEmpty) {
           return const Scaffold(
@@ -23,16 +46,17 @@ final GoRouter appRouter = GoRouter(
           );
         }
 
-        // Return the Neo-Brutalist Menu UI
         return QrMenuScreen(qrToken: token);
       },
     ),
 
-    // Default Fallback / Home Route
+    // 3. Root Landing / Fallback Screen
     GoRoute(
       path: '/',
       builder: (context, state) => const Scaffold(
-        body: Center(child: Text('Welcome to QR Restaurant Ordering')),
+        body: Center(
+          child: Text('Please scan a QR code at your table to view the menu.'),
+        ),
       ),
     ),
   ],

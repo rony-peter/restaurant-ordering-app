@@ -105,7 +105,7 @@ class QrMenuScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '\$${item.price.toStringAsFixed(2)}',
+                                '\₹${item.price.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w900,
@@ -177,7 +177,7 @@ class QrMenuScreen extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            '\$${cartState.totalAmount.toStringAsFixed(2)}',
+                            '\₹${cartState.totalAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w900,

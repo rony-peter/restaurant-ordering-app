@@ -3,14 +3,95 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../api/api_client.dart';
 import '../../../../theme/neo_brutalism_theme.dart';
 import '../../../../theme/widgets/neo_components.dart';
+import '../../../../network/razorpay_web.dart';
 import '../../providers/cart_provider.dart';
 
+// --- PAYMENT METHOD SELECTION MODAL ---
+void showPaymentMethodModal({
+  required BuildContext context,
+  required double totalAmount,
+  required VoidCallback onPayOnline,
+  required VoidCallback onPayAtTable,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (context) {
+      return Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Select Payment Option',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Total Payable: ₹${totalAmount.toStringAsFixed(2)}',
+              style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+
+            // Option 1: Pay Online Now
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: const Icon(Icons.payment_rounded, color: Colors.blue, size: 28),
+                title: const Text('Pay Online Now', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('UPI, Credit/Debit Cards, Netbanking'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  onPayOnline();
+                },
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Option 2: Pay at Table / Cash
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: const Icon(Icons.storefront_rounded, color: Colors.green, size: 28),
+                title: const Text('Pay at Table / Cash', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Send order to kitchen and pay the staff later'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  onPayAtTable();
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+// --- CHECKOUT BOTTOM SHEET ---
 class CheckoutBottomSheet extends ConsumerStatefulWidget {
   const CheckoutBottomSheet({super.key});
 
   @override
-  ConsumerState<CheckoutBottomSheet> createState() =>
-      _CheckoutBottomSheetState();
+  ConsumerState<CheckoutBottomSheet> createState() => _CheckoutBottomSheetState();
 }
 
 class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
@@ -23,7 +104,94 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
     super.dispose();
   }
 
-  void _handlePlaceOrder() async {
+  void _showPwaReceipt(BuildContext context, Map<String, dynamic> receiptData) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 380),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.black, width: 3),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(color: Colors.black, offset: Offset(6, 6)),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'RECEIPT',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 2,
+                ),
+              ),
+              const Text(
+                '--------------------------------',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'monospace'),
+              ),
+              Text(
+                'Order #${receiptData['orderId']?.toString().substring(0, 8) ?? ''}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              ...?((receiptData['items'] as List<dynamic>?)?.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${item['quantity']}x ${item['name']}',
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                      ),
+                      Text(
+                        '₹${item['total']}',
+                        style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              })),
+              const Text(
+                '--------------------------------',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontFamily: 'monospace'),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('TOTAL:', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                  Text(
+                    '₹${receiptData['summary']?['grandTotal'] ?? 0}',
+                    style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, fontSize: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              NeoButton(
+                text: 'CLOSE RECEIPT',
+                color: NeoBrutalism.primary,
+                onPressed: () => Navigator.of(ctx).pop(),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _processOrder(String paymentMethod) async {
     final cartState = ref.read(cartProvider);
 
     if (cartState.restaurantId == null || cartState.tableId == null) {
@@ -41,43 +209,113 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
         'restaurantId': cartState.restaurantId,
         'tableId': cartState.tableId,
         'notes': _notesController.text,
+        'paymentMethod': paymentMethod,
         'items': cartState.items.map((item) {
           return {'menuItemId': item.menuItem.id, 'quantity': item.quantity};
         }).toList(),
       };
 
-      // POST to backend API
-      await apiClient.placeOrder(orderPayload);
+      final orderResponse = await apiClient.placeOrder(orderPayload);
+      final String orderId = orderResponse['id'] ?? orderResponse['orderId'];
 
       if (!mounted) return;
-
-      ref.read(cartProvider.notifier).clearCart();
       Navigator.of(context).pop();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: NeoBrutalism.success,
-          behavior: SnackBarBehavior.floating,
-          content: const Text(
-            'ORDER PLACED SUCCESSFULLY! 🚀',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
+      if (paymentMethod == 'PAY_AT_TABLE') {
+        ref.read(cartProvider.notifier).clearCart();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: NeoBrutalism.success,
+            behavior: SnackBarBehavior.floating,
+            content: Text(
+              'ORDER SENT TO KITCHEN! PAY AT TABLE 🚀',
+              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16),
             ),
           ),
-        ),
-      );
+        );
+
+        try {
+          final receiptData = await apiClient.getReceipt(orderId, cartState.restaurantId!);
+          if (context.mounted) {
+            _showPwaReceipt(context, receiptData);
+          }
+        } catch (e) {
+          debugPrint('Error fetching receipt: $e');
+        }
+      } else if (paymentMethod == 'ONLINE') {
+        final paymentSession = await apiClient.createPaymentCheckout(
+          orderId: orderId,
+          restaurantId: cartState.restaurantId!,
+        );
+
+        if (!mounted) return;
+
+        openRazorpayWebCheckout(
+          keyId: paymentSession['keyId'],
+          razorpayOrderId: paymentSession['razorpayOrderId'],
+          amount: paymentSession['amount'],
+          currency: paymentSession['currency'] ?? 'INR',
+          restaurantName: 'Restaurant Order',
+          onSuccess: (paymentId) async {
+            ref.read(cartProvider.notifier).clearCart();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: NeoBrutalism.success,
+                behavior: SnackBarBehavior.floating,
+                content: Text(
+                  'PAYMENT SUCCESSFUL & ORDER PLACED! 🚀',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            );
+
+            try {
+              final receiptData = await apiClient.getReceipt(orderId, cartState.restaurantId!);
+              if (context.mounted) {
+                _showPwaReceipt(context, receiptData);
+              }
+            } catch (e) {
+              debugPrint('Error fetching receipt: $e');
+            }
+          },
+          onFailure: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: NeoBrutalism.alert,
+                content: Text('Payment cancelled or failed.'),
+              ),
+            );
+          },
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: NeoBrutalism.alert,
           content: Text('Failed to place order: $e'),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
+  }
+
+  void _handleCheckoutSelection() {
+    showPaymentMethodModal(
+      context: context,
+      totalAmount: ref.read(cartProvider).totalAmount,
+      onPayOnline: () => _processOrder('ONLINE'),
+      onPayAtTable: () => _processOrder('PAY_AT_TABLE'),
+    );
   }
 
   @override
@@ -136,7 +374,7 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
                         ),
                       ),
                       Text(
-                        '\$${item.totalPrice.toStringAsFixed(2)}',
+                        '₹${item.totalPrice.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
@@ -188,7 +426,7 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    '\$${cartState.totalAmount.toStringAsFixed(2)}',
+                    '₹${cartState.totalAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
@@ -200,9 +438,13 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
               _isSubmitting
                   ? const CircularProgressIndicator(color: Colors.black)
                   : NeoButton(
-                      text: 'PLACE ORDER 🚀',
+                      text: 'SELECT PAYMENT 🚀',
                       color: NeoBrutalism.success,
-                      onPressed: _handlePlaceOrder,
+                      onPressed: () {
+                        if (cartState.items.isNotEmpty) {
+                          _handleCheckoutSelection();
+                        }
+                      },
                     ),
             ],
           ),
