@@ -95,11 +95,16 @@ class CheckoutBottomSheet extends ConsumerStatefulWidget {
 }
 
 class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _isSubmitting = false;
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -208,7 +213,9 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
       final orderPayload = {
         'restaurantId': cartState.restaurantId,
         'tableId': cartState.tableId,
-        'notes': _notesController.text,
+        'customerName': _nameController.text.trim(),
+        'customerPhone': _phoneController.text.trim(),
+        'notes': _notesController.text.trim(),
         'paymentMethod': paymentMethod,
         'items': cartState.items.map((item) {
           return {'menuItemId': item.menuItem.id, 'quantity': item.quantity};
@@ -257,6 +264,7 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
           amount: paymentSession['amount'],
           currency: paymentSession['currency'] ?? 'INR',
           restaurantName: 'Restaurant Order',
+          contact: _phoneController.text.trim(),
           onSuccess: (paymentId) async {
             ref.read(cartProvider.notifier).clearCart();
 
@@ -310,12 +318,14 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
   }
 
   void _handleCheckoutSelection() {
-    showPaymentMethodModal(
-      context: context,
-      totalAmount: ref.read(cartProvider).totalAmount,
-      onPayOnline: () => _processOrder('ONLINE'),
-      onPayAtTable: () => _processOrder('PAY_AT_TABLE'),
-    );
+    if (_formKey.currentState?.validate() ?? false) {
+      showPaymentMethodModal(
+        context: context,
+        totalAmount: ref.read(cartProvider).totalAmount,
+        onPayOnline: () => _processOrder('ONLINE'),
+        onPayAtTable: () => _processOrder('PAY_AT_TABLE'),
+      );
+    }
   }
 
   @override
@@ -333,122 +343,196 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
           right: BorderSide(color: Colors.black, width: 3),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'YOUR CART',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 28),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-          const Divider(color: Colors.black, thickness: 2),
-          const SizedBox(height: 12),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'YOUR CART',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 28),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.black, thickness: 2),
+            const SizedBox(height: 12),
 
-          Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: cartState.items.length,
-              itemBuilder: (context, index) {
-                final item = cartState.items[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${item.quantity}x  ${item.menuItem.name}',
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: cartState.items.length,
+                itemBuilder: (context, index) {
+                  final item = cartState.items[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${item.quantity}x  ${item.menuItem.name}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '₹${item.totalPrice.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w900,
                             fontSize: 16,
                           ),
                         ),
-                      ),
-                      Text(
-                        '₹${item.totalPrice.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Customer Name Input Field
+            TextFormField(
+              controller: _nameController,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
+                }
+                return null;
               },
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          TextField(
-            controller: _notesController,
-            decoration: InputDecoration(
-              labelText: 'Kitchen Notes (e.g., No onions, extra sauce)',
-              labelStyle: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              enabledBorder: OutlineInputBorder(
-                borderSide: const BorderSide(color: Colors.black, width: 2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderSide: const BorderSide(
-                  color: NeoBrutalism.primary,
-                  width: 2.5,
+              decoration: InputDecoration(
+                labelText: 'Your Name *',
+                labelStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
                 ),
-                borderRadius: BorderRadius.circular(8),
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.black, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: NeoBrutalism.primary,
+                    width: 2.5,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'TOTAL',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+            // Customer Mobile Number Input Field
+            TextFormField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your mobile number';
+                }
+                if (value.trim().length < 10) {
+                  return 'Enter a valid mobile number';
+                }
+                return null;
+              },
+              decoration: InputDecoration(
+                labelText: 'Mobile Number *',
+                labelStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.black, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: NeoBrutalism.primary,
+                    width: 2.5,
                   ),
-                  Text(
-                    '₹${cartState.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: NeoBrutalism.primary,
-                    ),
-                  ),
-                ],
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.black)
-                  : NeoButton(
-                      text: 'SELECT PAYMENT 🚀',
-                      color: NeoBrutalism.success,
-                      onPressed: () {
-                        if (cartState.items.isNotEmpty) {
-                          _handleCheckoutSelection();
-                        }
-                      },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Kitchen Notes Input Field
+            TextField(
+              controller: _notesController,
+              decoration: InputDecoration(
+                labelText: 'Kitchen Notes (e.g., No onions, extra sauce)',
+                labelStyle: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.black, width: 2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: NeoBrutalism.primary,
+                    width: 2.5,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'TOTAL',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-            ],
-          ),
-        ],
+                    Text(
+                      '₹${cartState.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: NeoBrutalism.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                _isSubmitting
+                    ? const CircularProgressIndicator(color: Colors.black)
+                    : NeoButton(
+                        text: 'SELECT PAYMENT 🚀',
+                        color: NeoBrutalism.success,
+                        onPressed: () {
+                          if (cartState.items.isNotEmpty) {
+                            _handleCheckoutSelection();
+                          }
+                        },
+                      ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
