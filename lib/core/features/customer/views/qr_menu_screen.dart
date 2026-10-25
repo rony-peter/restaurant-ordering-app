@@ -14,13 +14,37 @@ final menuFutureProvider = FutureProvider.family<List<MenuItem>, String>((
 ) async {
   final apiClient = ApiClient();
 
-  // 1. Resolve QR token to get table & restaurant context
+  // 1. Resolve QR token to get table, restaurant context, tax rate, and charges from backend
   final tableData = await apiClient.resolveQrToken(qrToken);
   final String restaurantId = tableData['restaurantId'];
   final String tableId = tableData['id'];
+  
+  // Safely extract tax rate and additional charges
+  final double taxPercentage =
+      (tableData['taxPercentage'] ?? tableData['gstRate'] as num?)?.toDouble() ?? 5.0;
+  
+  final double packagingCharge = 
+      (tableData['packagingCharge'] ?? tableData['packagingChargePaise'] as num?)?.toDouble() != null 
+          ? ((tableData['packagingCharge'] ?? tableData['packagingChargePaise']) is int 
+              ? ((tableData['packagingCharge'] ?? tableData['packagingChargePaise']) as num).toDouble() / 100 
+              : ((tableData['packagingCharge'] ?? tableData['packagingChargePaise']) as num).toDouble())
+          : 0.0;
 
-  // 2. Pass context to Cart State
-  ref.read(cartProvider.notifier).setTableContext(restaurantId, tableId);
+  final double serviceChargePercent = 
+      (tableData['serviceChargePercent'] ?? tableData['serviceCharge'] as num?)?.toDouble() ?? 0.0;
+
+  // 2. Pass context and charges to Cart State safely
+  Future.microtask(() {
+    ref
+        .read(cartProvider.notifier)
+        .setTableContext(
+          restaurantId, 
+          tableId, 
+          taxPercentage, 
+          packagingCharge: packagingCharge,
+          serviceChargePercent: serviceChargePercent,
+        );
+  });
 
   // 3. Fetch menu for this restaurant
   final rawMenu = await apiClient.fetchMenu(restaurantId);

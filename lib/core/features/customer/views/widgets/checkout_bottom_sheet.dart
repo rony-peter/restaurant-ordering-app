@@ -333,7 +333,12 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
     final cartState = ref.watch(cartProvider);
 
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+        left: 24.0,
+        right: 24.0,
+        top: 24.0,
+      ),
       decoration: const BoxDecoration(
         color: NeoBrutalism.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -345,193 +350,232 @@ class _CheckoutBottomSheetState extends ConsumerState<CheckoutBottomSheet> {
       ),
       child: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'YOUR CART',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, size: 28),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Divider(color: Colors.black, thickness: 2),
-            const SizedBox(height: 12),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'YOUR CART',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 28),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.black, thickness: 2),
+              const SizedBox(height: 12),
 
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: cartState.items.length,
-                itemBuilder: (context, index) {
-                  final item = cartState.items[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${item.quantity}x  ${item.menuItem.name}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '₹${item.totalPrice.toStringAsFixed(2)}',
+              // Itemized List
+              ...cartState.items.map((item) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${item.quantity}x  ${item.menuItem.name}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Customer Name Input Field
-            TextFormField(
-              controller: _nameController,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your name';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Your Name *',
-                labelStyle: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.black, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: NeoBrutalism.primary,
-                    width: 2.5,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Customer Mobile Number Input Field
-            TextFormField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your mobile number';
-                }
-                if (value.trim().length < 10) {
-                  return 'Enter a valid mobile number';
-                }
-                return null;
-              },
-              decoration: InputDecoration(
-                labelText: 'Mobile Number *',
-                labelStyle: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.black, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: NeoBrutalism.primary,
-                    width: 2.5,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Kitchen Notes Input Field
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: 'Kitchen Notes (e.g., No onions, extra sauce)',
-                labelStyle: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(color: Colors.black, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: NeoBrutalism.primary,
-                    width: 2.5,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TOTAL',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '₹${cartState.totalAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: NeoBrutalism.primary,
                       ),
-                    ),
+                      Text(
+                        '₹${item.totalPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 12),
+              const Divider(color: Colors.black, thickness: 1),
+              const SizedBox(height: 8),
+
+              // Subtotal & Tax Breakdown
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Subtotal', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                  Text('₹${cartState.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              if (cartState.packagingCharge > 0) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Packaging Fee', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                    Text('₹${cartState.packagingCharge.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
-                _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.black)
-                    : NeoButton(
-                        text: 'SELECT PAYMENT 🚀',
-                        color: NeoBrutalism.success,
-                        onPressed: () {
-                          if (cartState.items.isNotEmpty) {
-                            _handleCheckoutSelection();
-                          }
-                        },
-                      ),
               ],
-            ),
-          ],
+              if (cartState.serviceChargeAmount > 0) ...[
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Service Charge (${cartState.serviceChargePercent}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                    Text('₹${cartState.serviceChargeAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tax / GST (${cartState.taxPercentage}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                  Text('₹${cartState.taxAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(color: Colors.black, thickness: 2),
+              const SizedBox(height: 12),
+
+              // Customer Name Input Field
+              TextFormField(
+                controller: _nameController,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Your Name *',
+                  labelStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.black, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(
+                      color: NeoBrutalism.primary,
+                      width: 2.5,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Customer Mobile Number Input Field
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your mobile number';
+                  }
+                  if (value.trim().length < 10) {
+                    return 'Enter a valid mobile number';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  labelText: 'Mobile Number *',
+                  labelStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.black, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(
+                      color: NeoBrutalism.primary,
+                      width: 2.5,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Kitchen Notes Input Field
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                  labelText: 'Kitchen Notes (e.g., No onions, extra sauce)',
+                  labelStyle: const TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.black, width: 2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(
+                      color: NeoBrutalism.primary,
+                      width: 2.5,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TOTAL',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '₹${cartState.totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: NeoBrutalism.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  _isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.black)
+                      : NeoButton(
+                          text: 'SELECT PAYMENT 🚀',
+                          color: NeoBrutalism.success,
+                          onPressed: () {
+                            if (cartState.items.isNotEmpty) {
+                              _handleCheckoutSelection();
+                            }
+                          },
+                        ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
